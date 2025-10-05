@@ -1,0 +1,11 @@
+# Arquivos a serem ignorados no build do Docker
+.git
+.gitignore
+README.md
+.env.example
+*.md
+.vscode
+node_modules
+npm-debug.log
+.DS_Store
+.dockerignore

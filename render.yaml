@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: dokploy
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    region: oregon
+    buildCommand: ""
+    startCommand: ""
+    envVars:
+      - key: DOKPLOY_HOST
+        value: 0.0.0.0
+      - key: LOG_LEVEL
+        value: info
+      - key: DOKPLOY_SSL
+        value: "true"
+      - key: PORT
+        value: 3000
