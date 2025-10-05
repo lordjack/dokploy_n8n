@@ -11,30 +11,51 @@ echo "📋 Configurações:"
 echo "  - Porta: $DOKPLOY_PORT"
 echo "  - Host: $DOKPLOY_HOST"
 
+# Verificar se estamos rodando como root ou temos sudo
+if [ "$EUID" -eq 0 ]; then
+    echo "🔑 Rodando como root"
+    SUDO_CMD=""
+else
+    echo "👤 Rodando como usuário - usando sudo quando necessário"
+    SUDO_CMD="sudo"
+fi
+
 # Verificar se estamos em um ambiente privilegiado para Docker
 echo "🔍 Verificando ambiente Docker..."
+DOCKER_AVAILABLE=false
+
+# Tentar iniciar dockerd se não estiver rodando
 if [ ! -S /var/run/docker.sock ]; then
-    echo "🐳 Iniciando Docker daemon..."
-    # Tentar iniciar dockerd em background
-    sudo dockerd --host=unix:///var/run/docker.sock --iptables=false --bridge=none &
+    echo "🐳 Tentando iniciar Docker daemon..."
+    $SUDO_CMD dockerd --host=unix:///var/run/docker.sock --iptables=false --bridge=none &
     DOCKER_PID=$!
     
-    # Aguardar socket estar disponível
-    for i in {1..30}; do
-        if [ -S /var/run/docker.sock ]; then
-            echo "✅ Docker socket disponível!"
-            break
-        fi
-        echo "⏳ Aguardando Docker socket... ($i/30)"
-        sleep 2
-    done
+    # Aguardar um pouco para o daemon iniciar
+    sleep 5
     
-    if [ ! -S /var/run/docker.sock ]; then
-        echo "❌ Timeout aguardando Docker socket!"
-        echo "ℹ️  Continuando sem Docker daemon local..."
+    # Verificar se funcionou
+    if docker info > /dev/null 2>&1; then
+        DOCKER_AVAILABLE=true
+        echo "✅ Docker daemon iniciado!"
+    else
+        echo "⚠️  Docker daemon não pôde ser iniciado"
+        # Matar processo se ainda estiver rodando
+        [ ! -z "$DOCKER_PID" ] && kill $DOCKER_PID 2>/dev/null
     fi
 else
-    echo "✅ Docker socket já disponível!"
+    # Socket já existe, verificar se funciona
+    if docker info > /dev/null 2>&1; then
+        DOCKER_AVAILABLE=true
+        echo "✅ Docker já está funcionando!"
+    else
+        echo "⚠️  Docker socket existe mas não funciona"
+    fi
+fi
+
+# Se Docker não está disponível, usar modo standalone
+if [ "$DOCKER_AVAILABLE" = false ]; then
+    echo "🔄 Docker não disponível, iniciando em modo standalone..."
+    exec /usr/local/bin/start-standalone.sh
 fi
 
 # Instalar Dokploy se não estiver instalado

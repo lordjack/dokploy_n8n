@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     apt-transport-https \
     sudo \
-    init-system-helpers \
     build-essential \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar Node.js primeiro (necessário para Dokploy)
@@ -26,15 +26,15 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 
 # Instalar Docker (opcional, pode falhar no Render)
 RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
-    sh get-docker.sh || echo "Docker installation failed, continuing..." && \
+    bash get-docker.sh || echo "Docker installation failed, continuing..." && \
     rm -f get-docker.sh
 
-# Criar usuário dokploy
-RUN useradd -m -s /bin/bash dokploy && \
-    usermod -aG docker dokploy 2>/dev/null || true && \
-    echo "dokploy ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+# Criar usuário dokploy e configurar permissões
+RUN useradd -m -s /bin/bash -G sudo dokploy && \
+    echo "dokploy ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    usermod -aG docker dokploy 2>/dev/null || true
 
-# Criar diretórios necessários
+# Criar diretórios necessários com permissões corretas
 RUN mkdir -p /etc/dokploy /var/lib/dokploy /home/dokploy/.config && \
     chown -R dokploy:dokploy /etc/dokploy /var/lib/dokploy /home/dokploy
 
@@ -47,7 +47,7 @@ RUN chmod +x /usr/local/bin/start.sh /usr/local/bin/install-dokploy.sh /usr/loca
 # Expor porta padrão do Dokploy
 EXPOSE 3000
 
-# Definir usuário
+# Mudar para usuário dokploy
 USER dokploy
 WORKDIR /home/dokploy
 
