@@ -1,7 +1,11 @@
 # Dockerfile para deploy do Dokploy no Render.com
 FROM ubuntu:22.04
 
-# Instalar dependências básicas
+# Definir variáveis de ambiente para evitar prompts interativos
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# Atualizar e instalar dependências básicas
 RUN apt-get update && apt-get install -y \
     curl \
     wget \
@@ -11,32 +15,34 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     apt-transport-https \
     sudo \
-    systemctl \
+    init-system-helpers \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar Docker
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-RUN echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-RUN apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+# Instalar Node.js primeiro (necessário para Dokploy)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
-# Instalar Node.js (necessário para algumas funcionalidades do Dokploy)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-RUN apt-get install -y nodejs
+# Instalar Docker (opcional, pode falhar no Render)
+RUN curl -fsSL https://get.docker.com -o get-docker.sh && \
+    sh get-docker.sh || echo "Docker installation failed, continuing..." && \
+    rm -f get-docker.sh
 
 # Criar usuário dokploy
-RUN useradd -m -s /bin/bash dokploy
-RUN usermod -aG docker dokploy
-RUN echo "dokploy ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN useradd -m -s /bin/bash dokploy && \
+    usermod -aG docker dokploy 2>/dev/null || true && \
+    echo "dokploy ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 # Criar diretórios necessários
-RUN mkdir -p /etc/dokploy
-RUN mkdir -p /var/lib/dokploy
-RUN chown -R dokploy:dokploy /etc/dokploy /var/lib/dokploy
+RUN mkdir -p /etc/dokploy /var/lib/dokploy /home/dokploy/.config && \
+    chown -R dokploy:dokploy /etc/dokploy /var/lib/dokploy /home/dokploy
 
 # Copiar scripts de inicialização
 COPY start.sh /usr/local/bin/start.sh
 COPY install-dokploy.sh /usr/local/bin/install-dokploy.sh
-RUN chmod +x /usr/local/bin/start.sh /usr/local/bin/install-dokploy.sh
+COPY start-standalone.sh /usr/local/bin/start-standalone.sh
+RUN chmod +x /usr/local/bin/start.sh /usr/local/bin/install-dokploy.sh /usr/local/bin/start-standalone.sh
 
 # Expor porta padrão do Dokploy
 EXPOSE 3000

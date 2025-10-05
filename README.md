@@ -79,12 +79,14 @@ dokploy_n8n/
 
 ## 📋 Recursos incluídos
 
-- ✅ Docker configurado
-- ✅ Dokploy instalação automática
-- ✅ Scripts de inicialização otimizados
+- ✅ Docker configurado (com fallback para modo standalone)
+- ✅ Dokploy instalação automática robusta
+- ✅ Scripts de inicialização otimizados com múltiplos fallbacks
 - ✅ Configuração de ambiente flexível
 - ✅ Suporte a SSL/TLS
 - ✅ Logs configuráveis
+- ✅ Modo standalone para ambientes sem Docker
+- ✅ Instalação via npm como backup
 
 ## 🛠️ Solução de problemas
 

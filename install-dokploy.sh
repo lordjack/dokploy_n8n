@@ -5,26 +5,32 @@
 
 echo "🚀 Iniciando instalação do Dokploy..."
 
-# Verificar se Docker está funcionando
-echo "🐳 Verificando Docker..."
-if ! docker --version > /dev/null 2>&1; then
-    echo "❌ Docker não está disponível!"
-    exit 1
+# Verificar se já está instalado
+if command -v dokploy &> /dev/null; then
+    echo "✅ Dokploy já está instalado!"
+    dokploy --version
+    exit 0
 fi
-
-# Iniciar o daemon do Docker se não estiver rodando
-sudo service docker start
 
 # Baixar e instalar Dokploy
 echo "📦 Baixando Dokploy..."
-curl -sSL https://dokploy.com/install.sh | sh
 
-# Verificar se a instalação foi bem-sucedida
-if [ $? -eq 0 ]; then
-    echo "✅ Dokploy instalado com sucesso!"
+# Usar método alternativo se o script padrão falhar
+if ! curl -sSL https://dokploy.com/install.sh | sh; then
+    echo "⚠️  Script padrão falhou, tentando instalação manual..."
+    
+    # Instalação manual via npm (fallback)
+    echo "📦 Instalando via npm..."
+    sudo npm install -g dokploy@latest
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Dokploy instalado via npm!"
+    else
+        echo "❌ Falha na instalação do Dokploy!"
+        exit 1
+    fi
 else
-    echo "❌ Falha na instalação do Dokploy!"
-    exit 1
+    echo "✅ Dokploy instalado com sucesso!"
 fi
 
 echo "🎉 Instalação do Dokploy concluída!"
